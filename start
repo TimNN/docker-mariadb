@@ -9,6 +9,18 @@ DB_REMOTE_ROOT_NAME=${DB_REMOTE_ROOT_NAME:-}
 DB_REMOTE_ROOT_PASS=${DB_REMOTE_ROOT_PASS:-}
 DB_REMOTE_ROOT_HOST=${DB_REMOTE_ROOT_HOST:-"172.17.42.1"}
 
+if [ -n "${USERMAP_UID}" ] || [ -n "${USERMAP_GID}" ]; then
+  if [ -n "${USERMAP_UID}" ] && [ -n "${USERMAP_GID}" ]; then
+    groupmod -g ${USERMAP_GID} mysql
+    usermod -u ${USERMAP_UID} -g ${USERMAP_GID} mysql
+  else
+    echo ""
+    echo "WARNING: "
+    echo "  Please specify USERMAP_UID AND USERMAP_GID or neither. Not changing user id..."
+    echo ""
+  fi
+fi
+
 # disable error log
 sed 's/^log_error/# log_error/' -i /etc/mysql/my.cnf
 
@@ -26,6 +38,9 @@ chown -R mysql:mysql /var/lib/mysql
 # fix permissions and ownership of /run/mysqld
 mkdir -p -m 0755 /run/mysqld
 chown -R mysql:root /run/mysqld
+
+# fix permissions due to USERMAP_*
+chown -R mysql:adm $(find /var/log -name 'mysql*')
 
 #
 # the default password for the debian-sys-maint user is randomly generated
